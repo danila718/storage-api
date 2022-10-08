@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\FileController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -14,8 +16,18 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+Route::middleware('auth:sanctum')->group(function () {
+
+    Route::prefix('user')->group(function () {
+        Route::get('info', [UserController::class, 'info']);
+    });
+
+    Route::prefix('files')->group(function () {
+        Route::get('', [FileController::class, 'index']);
+        Route::post('', [FileController::class, 'upload']);
+        Route::get('{id}', [FileController::class, 'download']);
+        Route::delete('{id}', [FileController::class, 'destroy']);
+    });
 });
 
 Route::controller(AuthController::class)->group(function () {
