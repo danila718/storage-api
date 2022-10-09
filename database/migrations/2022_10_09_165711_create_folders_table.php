@@ -13,17 +13,11 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('files', function (Blueprint $table) {
+        Schema::create('folders', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->string('file_name')->nullable();
-            $table->unsignedBigInteger('file_size')->nullable();
-            $table->boolean('is_dir')->default(false);
-            $table->foreignId('dir_id')->nullable()->constrained('files');
             $table->foreignId('created_by')->constrained('users');
-            $table->uuid('share_id')->unique()->nullable()->index();
             $table->timestamps();
-            $table->unique(['name', 'dir_id', 'created_by']);
         });
     }
 
@@ -34,6 +28,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('files');
+        Schema::dropIfExists('folders');
     }
 };

@@ -33,6 +33,7 @@ return [
 
     'storage' => [
         'totalUserSpace' => 100 * 1024 * 1024, // in bytes
+        'maxFileSize' => 20 * 1024 * 1024, // in bytes
     ],
 
 ];

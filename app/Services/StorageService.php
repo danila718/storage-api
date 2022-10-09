@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\File as FileModel;
+use App\Models\Folder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -16,18 +17,21 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class StorageService
 {
     private const DEFAULT_TOTAL_USER_SPACE = 10 * 1024 * 1024;
+    private const DEFAULT_MAX_FILE_SIZE = 20 * 1024 * 1024;
 
     private int $totalUserSpace;
+    private int $maxFileSize;
 
     public function __construct()
     {
         $this->totalUserSpace = config('services.storage.totalUserSpace', self::DEFAULT_TOTAL_USER_SPACE);
+        $this->maxFileSize = config('services.storage.maxFileSize', self::DEFAULT_MAX_FILE_SIZE);
     }
 
     /**
      * Get the total size of files on a drive or folder.
      *
-     * @param int $dirId
+     * @param Request $request
      * @return float
      */
     public function totalFilesSize(Request $request)
@@ -56,12 +60,12 @@ class StorageService
             'file' => [
                 'required',
                 File::default()
-                    ->max(20 * 1024),
+                    ->max(self::formatSize($this->maxFileSize, 'KB')),
             ],
             'dir_id' => [
                 'sometimes',
                 'integer',
-                Rule::exists('files')
+                Rule::exists('folders', 'id')
                     ->where('created_by', $user->id),
             ],
         ]);
@@ -198,7 +202,7 @@ class StorageService
     }
 
     /**
-     * Download file service
+     * Download file
      *
      * @return FileModel|null
      */
@@ -217,7 +221,7 @@ class StorageService
     }
 
     /**
-     * Download file service
+     * Download shared file
      *
      * @return FileModel|null
      */
@@ -232,6 +236,32 @@ class StorageService
             return null;
         }
         return $result;
+    }
+
+    /**
+     * Create folder
+     *
+     * @param Request $request
+     * @return Folder|null
+     */
+    public function createFolder(Request $request): ?Folder
+    {
+        $user = Auth::user();
+        $request->validate([
+            'name' => [
+                'required',
+                Rule::unique('folders')
+                    ->where('created_by', $user->id),
+            ],
+        ]);
+        $model = new Folder();
+        $model->name = $request->get('name');
+
+        if (!$model->save()) {
+            return null;
+        }
+
+        return $model;
     }
 
     private function getFileStreamResponse(FileModel $file): ?StreamedResponse

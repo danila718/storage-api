@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\FolderController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -36,6 +37,10 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
 //        Route::delete('{id}', [FileController::class, 'destroy']);
+    });
+
+    Route::prefix('folder')->group(function () {
+        Route::post('', [FolderController::class, 'create']);
     });
 });
 
