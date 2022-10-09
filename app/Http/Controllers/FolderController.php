@@ -16,6 +16,8 @@ class FolderController extends Controller
     }
 
     /**
+     * Create new folder
+     *
      * @param Request $request
      * @param Response $response
      * @return Response

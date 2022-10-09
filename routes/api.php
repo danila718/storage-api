@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\FolderController;
+use App\Http\Controllers\StorageController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -23,10 +24,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('info', [UserController::class, 'info']);
     });
 
-    Route::prefix('files')->group(function () {
-//        Route::get('', [FileController::class, 'index']);
+    Route::prefix('file')->group(function () {
         Route::post('', [FileController::class, 'upload']);
-        Route::get('/total-size', [FileController::class, 'totalFilesSize']);
         Route::get('{id}', [FileController::class, 'download']);
         Route::patch('{id}', [FileController::class, 'rename']);
         Route::delete('{id}', [FileController::class, 'delete']);
@@ -41,6 +40,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::prefix('folder')->group(function () {
         Route::post('', [FolderController::class, 'create']);
+    });
+
+    Route::prefix('storage')->group(function () {
+        Route::get('', [StorageController::class, 'list']);
+        Route::get('/total-size', [StorageController::class, 'totalSize']);
     });
 });
 

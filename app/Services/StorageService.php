@@ -32,9 +32,9 @@ class StorageService
      * Get the total size of files on a drive or folder.
      *
      * @param Request $request
-     * @return float
+     * @return string
      */
-    public function totalFilesSize(Request $request)
+    public function totalSize(Request $request): string
     {
         $user = Auth::user();
         $request->validate([
@@ -44,7 +44,7 @@ class StorageService
                     ->where('created_by', $user->id),
             ]
         ]);
-        return self::formatSize(FileModel::totalUserFilesSize($user->id, $request->get('dir_id')));
+        return self::getDisplaySize(FileModel::totalUserFilesSize($user->id, $request->get('dir_id')));
     }
 
     /**
@@ -60,7 +60,7 @@ class StorageService
             'file' => [
                 'required',
                 File::default()
-                    ->max(self::formatSize($this->maxFileSize, 'KB')),
+                    ->max(self::getFormattedSize($this->maxFileSize, 'KB')),
             ],
             'dir_id' => [
                 'sometimes',
@@ -91,7 +91,7 @@ class StorageService
             ],
             [
                 'total_size' => 'The total disk space must not be greater than '
-                    . self::formatSize($this->totalUserSpace) . ' MB' ,
+                    . self::getDisplaySize($this->totalUserSpace),
             ]
         );
         if ($fileValidator->fails()) {
@@ -264,6 +264,41 @@ class StorageService
         return $model;
     }
 
+    /**
+     * Get user folders
+     *
+     * @return Folder[]
+     */
+    public function getFolders(Request $request)
+    {
+        if ($request->get('dir_id')) {
+            return [];
+        }
+        $user = Auth::user();
+        return Folder::where('created_by', $user->id)->get();
+    }
+
+    /**
+     * Get user files
+     *
+     * @param Request $request
+     * @return FileModel[]
+     */
+    public function getFiles(Request $request)
+    {
+        $user = Auth::user();
+        $request->validate([
+            'dir_id' => [
+                'integer',
+                Rule::exists('folders', 'id')
+                    ->where('created_by', $user->id),
+            ],
+        ]);
+        return FileModel::where('created_by', $user->id)
+            ->where('dir_id', $request->get('dir_id'))
+            ->get();
+    }
+
     private function getFileStreamResponse(FileModel $file): ?StreamedResponse
     {
         if (!$this->fileExists($file)) {
@@ -295,13 +330,33 @@ class StorageService
     }
 
     /**
+     * Get display size
+     *
+     * @param float $size
+     * @return string
+     */
+    public static function getDisplaySize(float $size): string
+    {
+        if ($size < 1024) {
+            return self::getFormattedSize($size, 'Byte') . ' Byte';
+        }
+        if ($size < pow(1024, 2)) {
+            return self::getFormattedSize($size, 'KB') . ' KB';
+        }
+        if ($size < pow(1024, 3)) {
+            return self::getFormattedSize($size, 'MB') . ' MB';
+        }
+        return self::getFormattedSize($size, 'GB') . ' GB';
+    }
+
+    /**
      * Get total user space
      *
      * @param float $size
      * @param string $format
      * @return float
      */
-    public static function formatSize(float $size, string $format = 'MB')
+    public static function getFormattedSize(float $size, string $format = 'MB'): float
     {
         return round(match ($format) {
             'KB' => $size / 1024,
@@ -309,5 +364,16 @@ class StorageService
             'GB' => $size / pow(1024, 3),
             default => $size
         }, 2);
+    }
+
+    /**
+     * Get shared link
+     *
+     * @param $shareId
+     * @return string
+     */
+    public static function getSharedLink($shareId): string
+    {
+        return url('download/' . $shareId);
     }
 }

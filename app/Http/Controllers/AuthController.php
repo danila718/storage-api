@@ -10,7 +10,6 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-
     /**
      * Register
      *
@@ -64,7 +63,7 @@ class AuthController extends Controller
         $newAccessToken = $user->createToken($request->headers->get('User-Agent', 'unknownAgent'));
         $expiresAt = null;
         if ($expiration = config('sanctum.expiration')) {
-            $expiresAt = $newAccessToken->accessToken->created_at->addMinutes($expiration)->toISOString(true);
+            $expiresAt = $newAccessToken->accessToken->created_at->addMinutes($expiration)->toDateTimeLocalString();
         }
 
         return $response->setContent([

@@ -20,29 +20,6 @@ class FileController extends Controller
     }
 
     /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
-    {
-        //
-    }
-
-    /**
-     * @param Request $request
-     * @param Response $response
-     * @return Response
-     */
-    public function totalFilesSize(Request $request, Response $response)
-    {
-        return $response->setContent([
-            'success' => true,
-            'size' => $this->storageService->totalFilesSize($request) . ' MB',
-        ]);
-    }
-
-    /**
      * Upload new file.
      *
      * @param Request $request
@@ -115,7 +92,7 @@ class FileController extends Controller
         }
         return $response->setContent([
             'success' => true,
-            'url' => url('download/' . $result->share_id),
+            'url' => StorageService::getSharedLink($result->share_id),
         ]);
     }
 
