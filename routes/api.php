@@ -1,6 +1,10 @@
 <?php
 
-use Illuminate\Http\Request;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\FileController;
+use App\Http\Controllers\FolderController;
+use App\Http\Controllers\StorageController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -14,6 +18,39 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+Route::middleware('auth:sanctum')->group(function () {
+
+    Route::prefix('user')->group(function () {
+        Route::get('info', [UserController::class, 'info']);
+    });
+
+    Route::prefix('file')->group(function () {
+        Route::post('', [FileController::class, 'upload']);
+        Route::get('{id}', [FileController::class, 'download']);
+        Route::patch('{id}', [FileController::class, 'rename']);
+        Route::delete('{id}', [FileController::class, 'delete']);
+
+        Route::prefix('share')->group(function () {
+            Route::post('{id}', [FileController::class, 'createFileShare']);
+            Route::delete('{id}', [FileController::class, 'deleteFileShare']);
+        });
+
+//        Route::delete('{id}', [FileController::class, 'destroy']);
+    });
+
+    Route::prefix('folder')->group(function () {
+        Route::post('', [FolderController::class, 'create']);
+    });
+
+    Route::prefix('storage')->group(function () {
+        Route::get('', [StorageController::class, 'list']);
+        Route::get('/total-size', [StorageController::class, 'totalSize']);
+    });
+});
+
+Route::get('download/{shareId}', [FileController::class, 'downloadShared']);
+
+Route::controller(AuthController::class)->group(function () {
+    Route::post('register', 'register');
+    Route::post('login', 'login');
 });

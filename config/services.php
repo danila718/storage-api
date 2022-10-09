@@ -31,4 +31,9 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'storage' => [
+        'totalUserSpace' => 100 * 1024 * 1024, // in bytes
+        'maxFileSize' => 20 * 1024 * 1024, // in bytes
+    ],
+
 ];
