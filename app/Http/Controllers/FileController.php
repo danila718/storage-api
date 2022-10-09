@@ -107,14 +107,42 @@ class FileController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Rename file.
      *
-     * @param  \App\Models\File  $file
+     * @param Request $request
+     * @param Response $response
+     * @param string $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy(File $file)
+    public function rename(Request $request, Response $response, string $id = '')
     {
-        //
+        $this->validateId($id);
+        $result = $this->fileService->renameFile($id, $request);
+        if (!$result) {
+            throw new NotFoundHttpException;
+        }
+        return $response->setContent([
+            'success' => true,
+        ]);
+    }
+
+    /**
+     * Remove file.
+     *
+     * @param Response $response
+     * @param string $id
+     * @return \Illuminate\Http\Response
+     */
+    public function delete(Response $response, string $id = '')
+    {
+        $this->validateId($id);
+        $result = $this->fileService->deleteFile($id);
+        if (!$result) {
+            throw new NotFoundHttpException;
+        }
+        return $response->setContent([
+            'success' => true,
+        ]);
     }
 
     /**

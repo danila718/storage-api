@@ -26,6 +26,8 @@ Route::middleware('auth:sanctum')->group(function () {
 //        Route::get('', [FileController::class, 'index']);
         Route::post('', [FileController::class, 'upload']);
         Route::get('{id}', [FileController::class, 'download']);
+        Route::patch('{id}', [FileController::class, 'rename']);
+        Route::delete('{id}', [FileController::class, 'delete']);
 
         Route::prefix('share')->group(function () {
             Route::post('{id}', [FileController::class, 'createFileShare']);

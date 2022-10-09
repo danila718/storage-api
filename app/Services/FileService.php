@@ -70,6 +70,71 @@ class FileService
     }
 
     /**
+     * Rename file.
+     *
+     * @param string $id
+     * @param Request $request
+     * @return FileModel|null
+     */
+    public function renameFile(string $id, Request $request): ?FileModel
+    {
+        $user = Auth::user();
+        $file = FileModel::where('id', $id)->where('created_by', $user->id)->first();
+        if (!$file) {
+            return null;
+        }
+
+        $request->validate([
+            'name' => 'required|string'
+        ]);
+
+        $fileName = $request->get('name');
+        $nameValidator = Validator::make(
+            [
+                'name' => $fileName,
+                'extension' => strstr($fileName, '.'),
+            ],
+            [
+                'name' => [
+                    'required',
+                    Rule::unique('files')
+                        ->whereNot('id', $file->id)
+                        ->where('created_by', $user->id)
+                        ->where('dir_id', $file->dir_id),
+                ],
+                'extension' => 'not_in:.php',
+            ]
+        );
+        if ($nameValidator->fails()) {
+            throw ValidationException::withMessages($nameValidator->errors()->toArray());
+        }
+        $file->name = $fileName;
+        if (!$file->save()) {
+            return null;
+        }
+        return $file;
+    }
+
+    /**
+     * Delete file.
+     *
+     * @param int $id
+     * @return FileModel|null
+     */
+    public function deleteFile(int $id): ?FileModel
+    {
+        $user = Auth::user();
+        $file = FileModel::where('id', $id)->where('created_by', $user->id)->first();
+        if (!$file || !$file->delete()) {
+            return null;
+        }
+        if ($this->fileExists($file)) {
+            Storage::delete($this->getFilePath($file));
+        }
+        return $file;
+    }
+
+    /**
      * Create file share.
      *
      * @param int $id
