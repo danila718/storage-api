@@ -47,4 +47,20 @@ class File extends Model
             $model->created_by = $user->id;
         });
     }
+
+    /**
+     * Total size of user files.
+     *
+     * @param int $userId
+     * @param int|null $dirId
+     * @return int
+     */
+    public static function totalUserFilesSize(int $userId, ?int $dirId = null): int
+    {
+        $q = self::where('created_by', $userId);
+        if ($dirId) {
+            $q->where('dir_id', $dirId);
+        }
+        return (int) $q->sum('file_size');
+    }
 }

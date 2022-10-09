@@ -13,8 +13,36 @@ use Illuminate\Validation\Rules\File;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-class FileService
+class StorageService
 {
+    private const DEFAULT_TOTAL_USER_SPACE = 10 * 1024 * 1024;
+
+    private int $totalUserSpace;
+
+    public function __construct()
+    {
+        $this->totalUserSpace = config('services.storage.totalUserSpace', self::DEFAULT_TOTAL_USER_SPACE);
+    }
+
+    /**
+     * Get the total size of files on a drive or folder.
+     *
+     * @param int $dirId
+     * @return float
+     */
+    public function totalFilesSize(Request $request)
+    {
+        $user = Auth::user();
+        $request->validate([
+            'dir_id' => [
+                'integer',
+                Rule::exists('files')
+                    ->where('created_by', $user->id),
+            ]
+        ]);
+        return self::formatSize(FileModel::totalUserFilesSize($user->id, $request->get('dir_id')));
+    }
+
     /**
      * Upload file
      *
@@ -23,22 +51,29 @@ class FileService
      */
     public function uploadFile(Request $request): ?FileModel
     {
+        $user = Auth::user();
         $request->validate([
-            'dir_id' => 'integer',
             'file' => [
                 'required',
                 File::default()
                     ->max(20 * 1024),
-            ]
+            ],
+            'dir_id' => [
+                'sometimes',
+                'integer',
+                Rule::exists('files')
+                    ->where('created_by', $user->id),
+            ],
         ]);
 
         $dirId = $request->get('dir_id');
         $file = $request->file('file');
-        $user = Auth::user();
+        $fileSize = $file->getSize();
         $fileValidator = Validator::make(
             [
                 'extension' => $file->extension() ?: $file->guessClientExtension(),
                 'name' => $file->getClientOriginalName(),
+                'total_size' => $fileSize + FileModel::totalUserFilesSize($user->id),
             ],
             [
                 'extension' => 'not_in:php',
@@ -48,6 +83,11 @@ class FileService
                         ->where('created_by', $user->id)
                         ->where('dir_id', $dirId),
                 ],
+                'total_size' => 'numeric|max:' . $this->totalUserSpace,
+            ],
+            [
+                'total_size' => 'The total disk space must not be greater than '
+                    . self::formatSize($this->totalUserSpace) . ' MB' ,
             ]
         );
         if ($fileValidator->fails()) {
@@ -58,7 +98,7 @@ class FileService
         $model = new FileModel;
         $model->name = $file->getClientOriginalName();
         $model->file_name = $file->hashName();
-        $model->file_size = $file->getSize();
+        $model->file_size = $fileSize;
         $model->dir_id = $dirId;
 
         if (!$model->save() || !$file->store($filePath)) {
@@ -222,5 +262,22 @@ class FileService
     private function getFilePath(FileModel $file): string
     {
         return 'files' . DIRECTORY_SEPARATOR . $file->created_by . DIRECTORY_SEPARATOR . $file->file_name;
+    }
+
+    /**
+     * Get total user space
+     *
+     * @param float $size
+     * @param string $format
+     * @return float
+     */
+    public static function formatSize(float $size, string $format = 'MB')
+    {
+        return round(match ($format) {
+            'KB' => $size / 1024,
+            'MB' => $size / pow(1024, 2),
+            'GB' => $size / pow(1024, 3),
+            default => $size
+        }, 2);
     }
 }

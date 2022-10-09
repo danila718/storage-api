@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\FileService;
+use App\Services\StorageService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Validator;
@@ -12,11 +12,11 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class FileController extends Controller
 {
-    private FileService $fileService;
+    private StorageService $storageService;
 
-    public function __construct(FileService $fileService)
+    public function __construct(StorageService $storageService)
     {
-        $this->fileService = $fileService;
+        $this->storageService = $storageService;
     }
 
     /**
@@ -30,6 +30,19 @@ class FileController extends Controller
     }
 
     /**
+     * @param Request $request
+     * @param Response $response
+     * @return Response
+     */
+    public function totalFilesSize(Request $request, Response $response)
+    {
+        return $response->setContent([
+            'success' => true,
+            'size' => $this->storageService->totalFilesSize($request) . ' MB',
+        ]);
+    }
+
+    /**
      * Upload new file.
      *
      * @param Request $request
@@ -38,7 +51,7 @@ class FileController extends Controller
      */
     public function upload(Request $request, Response $response): Response
     {
-        if (!$file = $this->fileService->uploadFile($request)) {
+        if (!$file = $this->storageService->uploadFile($request)) {
             return $response->setStatusCode(520)->setContent([
                 'success' => false,
                 'message' => 'The file has not been saved',
@@ -60,7 +73,7 @@ class FileController extends Controller
     public function download(string $id = '')
     {
         $this->validateId($id);
-        $result = $this->fileService->downloadFile($id);
+        $result = $this->storageService->downloadFile($id);
         if (!$result) {
             throw new NotFoundHttpException;
         }
@@ -79,7 +92,7 @@ class FileController extends Controller
         if ($validator->fails()) {
             throw ValidationException::withMessages($validator->errors()->toArray());
         }
-        $result = $this->fileService->downloadSharedFile($shareId);
+        $result = $this->storageService->downloadSharedFile($shareId);
         if (!$result) {
             throw new NotFoundHttpException;
         }
@@ -96,7 +109,7 @@ class FileController extends Controller
     public function createFileShare(Response $response, string $id = '')
     {
         $this->validateId($id);
-        $result = $this->fileService->createFileShare($id);
+        $result = $this->storageService->createFileShare($id);
         if (!$result) {
             throw new NotFoundHttpException;
         }
@@ -117,7 +130,7 @@ class FileController extends Controller
     public function rename(Request $request, Response $response, string $id = '')
     {
         $this->validateId($id);
-        $result = $this->fileService->renameFile($id, $request);
+        $result = $this->storageService->renameFile($id, $request);
         if (!$result) {
             throw new NotFoundHttpException;
         }
@@ -136,7 +149,7 @@ class FileController extends Controller
     public function delete(Response $response, string $id = '')
     {
         $this->validateId($id);
-        $result = $this->fileService->deleteFile($id);
+        $result = $this->storageService->deleteFile($id);
         if (!$result) {
             throw new NotFoundHttpException;
         }
