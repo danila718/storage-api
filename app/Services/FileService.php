@@ -7,19 +7,23 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\File;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FileService
 {
     /**
+     * Upload file
+     *
      * @param Request $request
      * @return FileModel|null
      */
     public function uploadFile(Request $request): ?FileModel
     {
-        $preValidator = Validator::make($request->all(), [
+        $request->validate([
             'dir_id' => 'integer',
             'file' => [
                 'required',
@@ -27,9 +31,6 @@ class FileService
                     ->max(20 * 1024),
             ]
         ]);
-        if ($preValidator->fails()) {
-            throw ValidationException::withMessages($preValidator->errors()->toArray());
-        }
 
         $dirId = $request->get('dir_id');
         $file = $request->file('file');
@@ -43,7 +44,9 @@ class FileService
                 'extension' => 'not_in:php',
                 'name' => [
                     'required',
-                    Rule::unique('files')->where('created_by', $user->id)->where('dir_id', $dirId)
+                    Rule::unique('files')
+                        ->where('created_by', $user->id)
+                        ->where('dir_id', $dirId),
                 ],
             ]
         );
@@ -64,5 +67,95 @@ class FileService
         }
 
         return $model;
+    }
+
+    /**
+     * Create file share.
+     *
+     * @param int $id
+     * @return FileModel|null
+     */
+    public function createFileShare(int $id): ?FileModel
+    {
+        $user = Auth::user();
+        $file = FileModel::where('id', $id)->where('created_by', $user->id)->first();
+        if (!$file) {
+            return null;
+        }
+        if ($file->share_id) {
+            return $file;
+        }
+        $file->share_id = Str::uuid()->toString();
+        if (!$file->save()) {
+            return null;
+        }
+        return $file;
+    }
+
+    /**
+     * Download file service
+     *
+     * @return FileModel|null
+     */
+    public function downloadFile(int $id): ?StreamedResponse
+    {
+        $user = Auth::user();
+        $file = FileModel::where('id', $id)->where('created_by', $user->id)->first();
+        if (!$file) {
+            return null;
+        }
+        if (!$result = $this->getFileStreamResponse($file)) {
+            $file->delete();
+            return null;
+        }
+        return $result;
+    }
+
+    /**
+     * Download file service
+     *
+     * @return FileModel|null
+     */
+    public function downloadSharedFile(string $shareId): ?StreamedResponse
+    {
+        $file = FileModel::where('share_id', $shareId)->first();
+        if (!$file) {
+            return null;
+        }
+        if (!$result = $this->getFileStreamResponse($file)) {
+            $file->delete();
+            return null;
+        }
+        return $result;
+    }
+
+    private function getFileStreamResponse(FileModel $file): ?StreamedResponse
+    {
+        if (!$this->fileExists($file)) {
+            return null;
+        }
+        return Storage::download($this->getFilePath($file), $file->name);
+    }
+
+    /**
+     * Check file exists
+     *
+     * @param FileModel $file
+     * @return bool
+     */
+    private function fileExists(FileModel $file): bool
+    {
+        return Storage::exists($this->getFilePath($file));
+    }
+
+    /**
+     * Get file path
+     *
+     * @param FileModel $file
+     * @return string
+     */
+    private function getFilePath(FileModel $file): string
+    {
+        return 'files' . DIRECTORY_SEPARATOR . $file->created_by . DIRECTORY_SEPARATOR . $file->file_name;
     }
 }
