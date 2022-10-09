@@ -202,6 +202,26 @@ class StorageService
     }
 
     /**
+     * Delete file share.
+     *
+     * @param int $id
+     * @return FileModel|null
+     */
+    public function deleteFileShare(int $id): ?FileModel
+    {
+        $user = Auth::user();
+        $file = FileModel::where('id', $id)->where('created_by', $user->id)->first();
+        if (!$file) {
+            return null;
+        }
+        $file->share_id = null;
+        if (!$file->save()) {
+            return null;
+        }
+        return $file;
+    }
+
+    /**
      * Download file
      *
      * @return FileModel|null

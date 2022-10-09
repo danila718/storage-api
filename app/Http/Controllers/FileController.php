@@ -97,6 +97,25 @@ class FileController extends Controller
     }
 
     /**
+     * Delete file share.
+     *
+     * @param Response $response
+     * @param string $id
+     * @return Response
+     */
+    public function deleteFileShare(Response $response, string $id = '')
+    {
+        $this->validateId($id);
+        $result = $this->storageService->deleteFileShare($id);
+        if (!$result) {
+            throw new NotFoundHttpException;
+        }
+        return $response->setContent([
+            'success' => true,
+        ]);
+    }
+
+    /**
      * Rename file.
      *
      * @param Request $request

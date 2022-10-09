@@ -32,7 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::prefix('share')->group(function () {
             Route::post('{id}', [FileController::class, 'createFileShare']);
-            Route::delete('', [FileController::class, 'deleteFileShare']);
+            Route::delete('{id}', [FileController::class, 'deleteFileShare']);
         });
 
 //        Route::delete('{id}', [FileController::class, 'destroy']);
