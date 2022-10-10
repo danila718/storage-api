@@ -56,19 +56,25 @@ class StorageService
     public function uploadFile(Request $request): ?FileModel
     {
         $user = Auth::user();
-        $request->validate([
-            'file' => [
-                'required',
-                File::default()
-                    ->max(self::getFormattedSize($this->maxFileSize, 'KB')),
+        $request->validate(
+            [
+                'file' => [
+                    'required',
+                    File::default()
+                        ->max(self::getFormattedSize($this->maxFileSize, 'KB')),
+                ],
+                'dir_id' => [
+                    'sometimes',
+                    'integer',
+                    Rule::exists('folders', 'id')
+                        ->where('created_by', $user->id),
+                ],
             ],
-            'dir_id' => [
-                'sometimes',
-                'integer',
-                Rule::exists('folders', 'id')
-                    ->where('created_by', $user->id),
-            ],
-        ]);
+            [
+                'file.required' => 'The file field is required.',
+                'file' => 'The file must not be greater than ' . self::getDisplaySize($this->maxFileSize),
+            ]
+        );
 
         $dirId = $request->get('dir_id');
         $file = $request->file('file');
