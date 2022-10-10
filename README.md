@@ -23,8 +23,8 @@
 
 Возможности настройки:
 1. Выбор диска для хранения файлов в .env ``STORAGE_SERVICE_DISK`` (диск должен быть зарегистрирован в ``config/filesystems.php``) протестировано с local и s3
-2. Максимальный размер хранилища на пользователя в .env ``STORAGE_SERVICE_MAX_FILE_SIZE_MB``
-3. Максимальный размер загружаемого файла в .env ``STORAGE_SERVICE_USER_SPACE_MB``
+2. Максимальный размер загружаемого файла в .env ``STORAGE_SERVICE_MAX_FILE_SIZE_MB``
+3. Максимальный размер хранилища на пользователя в .env ``STORAGE_SERVICE_USER_SPACE_MB``
 
 # Установка
 
