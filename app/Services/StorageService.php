@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Models\File as FileModel;
 use App\Models\Folder;
+use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -16,16 +16,18 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StorageService
 {
-    private const DEFAULT_TOTAL_USER_SPACE = 10 * 1024 * 1024;
-    private const DEFAULT_MAX_FILE_SIZE = 20 * 1024 * 1024;
-
     private int $totalUserSpace;
     private int $maxFileSize;
+    private Filesystem $filesystem;
 
-    public function __construct()
-    {
-        $this->totalUserSpace = config('services.storage.totalUserSpace', self::DEFAULT_TOTAL_USER_SPACE);
-        $this->maxFileSize = config('services.storage.maxFileSize', self::DEFAULT_MAX_FILE_SIZE);
+    public function __construct(
+        Filesystem $filesystem,
+        int $totalUserSpace,
+        int $maxFileSize,
+    ) {
+        $this->filesystem = $filesystem;
+        $this->totalUserSpace = $totalUserSpace;
+        $this->maxFileSize = $maxFileSize;
     }
 
     /**
@@ -103,16 +105,14 @@ class StorageService
         if ($fileValidator->fails()) {
             throw ValidationException::withMessages($fileValidator->errors()->toArray());
         }
-
-        $filePath = 'files/' . $user->id;
         $model = new FileModel;
         $model->name = $file->getClientOriginalName();
         $model->file_name = $file->hashName();
         $model->file_size = $fileSize;
         $model->dir_id = $dirId;
 
-        if (!$model->save() || !$file->store($filePath)) {
-            Storage::delete($filePath . DIRECTORY_SEPARATOR . $file->hashName());
+        if (!$model->save() || !$this->filesystem->putFile('files/' . $user->id, $file)) {
+            $this->filesystem->delete(self::getFilePath($model));
             return null;
         }
 
@@ -179,7 +179,7 @@ class StorageService
             return null;
         }
         if ($this->fileExists($file)) {
-            Storage::delete($this->getFilePath($file));
+            $this->filesystem->delete($this->getFilePath($file));
         }
         return $file;
     }
@@ -330,7 +330,7 @@ class StorageService
         if (!$this->fileExists($file)) {
             return null;
         }
-        return Storage::download($this->getFilePath($file), $file->name);
+        return $this->filesystem->download($this->getFilePath($file), $file->name);
     }
 
     /**
@@ -341,7 +341,7 @@ class StorageService
      */
     private function fileExists(FileModel $file): bool
     {
-        return Storage::exists($this->getFilePath($file));
+        return $this->filesystem->exists($this->getFilePath($file));
     }
 
     /**

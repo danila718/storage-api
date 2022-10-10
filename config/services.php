@@ -32,8 +32,8 @@ return [
     ],
 
     'storage' => [
-        'totalUserSpace' => 100 * 1024 * 1024, // in bytes
-        'maxFileSize' => 20 * 1024 * 1024, // in bytes
+        'disk' => env('STORAGE_SERVICE_DISK', 'local'),
+        'totalUserSpace' => env('STORAGE_SERVICE_USER_SPACE_MB', 100) * 1024 * 1024, // in bytes
+        'maxFileSize' => env('STORAGE_SERVICE_MAX_FILE_SIZE_MB', 20) * 1024 * 1024, // in bytes
     ],
-
 ];
